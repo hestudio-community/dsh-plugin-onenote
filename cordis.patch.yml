@@ -1,0 +1,9 @@
+# OneNote reader bundle: one Host row (tools + settings routes) and one Client
+# half (the settings card). Replace clientId/tenant with your own Azure app
+# registration if you do not want to use the bundled one.
+- insert:
+    - id: onenote
+      name: 'dsh-plugin-onenote'
+      config:
+        clientId: a2e9773e-e783-4e5c-83ff-8c627eec0e6e
+        tenant: common

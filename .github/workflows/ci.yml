@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Node ${{ matrix.node }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        node: ['22', '24']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      # No `npm ci`: the package has no runtime dependencies, and
+      # `@deepseek-ai/dsh-tools` is a host-provided peer that the test
+      # harness stubs (see test/support/stub-tools.mjs).
+      - run: npm test
+      - name: Check the publishable file list
+        run: npm pack --dry-run

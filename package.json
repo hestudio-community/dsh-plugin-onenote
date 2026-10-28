@@ -1,0 +1,79 @@
+{
+  "name": "dsh-plugin-onenote",
+  "version": "0.2.0",
+  "description": "Read the Microsoft OneNote notebooks you allow, from DeepSeek Harness. Device-code sign-in and a per-notebook allow-list you control in Settings. · 让 DSH 读取你勾选的 OneNote 笔记本：设备码登录，笔记本白名单在设置页勾选。",
+  "type": "module",
+  "main": "./index.js",
+  "license": "MIT",
+  "author": "hestudio-community",
+  "homepage": "https://github.com/hestudio-community/dsh-plugin-onenote#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hestudio-community/dsh-plugin-onenote.git"
+  },
+  "bugs": {
+    "url": "https://github.com/hestudio-community/dsh-plugin-onenote/issues"
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "onenote",
+    "microsoft-graph",
+    "notes"
+  ],
+  "engines": {
+    "node": ">=22",
+    "dsh": ">=0.2.0-rc.1"
+  },
+  "scripts": {
+    "test": "node --import ./test/support/stub-tools.mjs --test",
+    "test:watch": "node --import ./test/support/stub-tools.mjs --test --watch",
+    "pack:check": "npm pack --dry-run"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.1",
+    "@deepseek-ai/dsh-tools": "^0.2.0-0"
+  },
+  "peerDependenciesMeta": {
+    "@deepseek-ai/cordis": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-tools": {
+      "optional": true
+    }
+  },
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "src/*.js",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "icon.svg",
+    "README.md",
+    "README.zh.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-plugin-manager"
+      ]
+    }
+  }
+}

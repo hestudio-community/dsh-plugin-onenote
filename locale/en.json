@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "OneNote Reader",
+    "description": "Reads the Microsoft OneNote notebooks you allow. Sign in and tick notebooks in Settings → Plugins → OneNote; the agent can only ever see what you ticked."
+  }
+}

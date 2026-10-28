@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="OneNote Reader">
+  <defs>
+    <linearGradient id="sheet" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#7b3fe4"/>
+      <stop offset="100%" stop-color="#4a1fa8"/>
+    </linearGradient>
+  </defs>
+  <rect x="6" y="5" width="36" height="38" rx="5" fill="url(#sheet)"/>
+  <rect x="12" y="11" width="24" height="3" rx="1.5" fill="#ffffff" opacity="0.92"/>
+  <rect x="12" y="18" width="24" height="3" rx="1.5" fill="#ffffff" opacity="0.7"/>
+  <rect x="12" y="25" width="17" height="3" rx="1.5" fill="#ffffff" opacity="0.7"/>
+  <g fill="#ffffff">
+    <path d="M26 30h7a2 2 0 0 1 2 2v4.6a2 2 0 0 1-2 2h-4.4L25 41.9a.6.6 0 0 1-1-.44V32a2 2 0 0 1 2-2Z" opacity="0.95"/>
+    <path d="M28.5 34.2c.5-.9 2.1-.9 2.5.2.5-1.1 2.1-1.1 2.5-.2.4 1-.9 2.3-2.5 3.3-1.6-1-2.9-2.3-2.5-3.3Z" fill="#4a1fa8"/>
+  </g>
+</svg>

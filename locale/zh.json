@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "OneNote 笔记本读取",
+    "description": "读取你授权范围内的 Microsoft OneNote 笔记本。在「设置 → 插件 → OneNote」中登录并勾选笔记本；助手只能看到你勾选的内容。"
+  }
+}
