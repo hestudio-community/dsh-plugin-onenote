@@ -61,8 +61,7 @@ before any Microsoft Graph request.
 ├── test/                      # node:test suites; see docs/developer/testing.md
 │   ├── *.test.js
 │   └── support/               # test-only helpers, never shipped
-├── docs/developer/            # engineering documentation
-└── .github/workflows/         # ci.yml, release.yml
+└── docs/developer/            # engineering documentation
 ```
 
 ## Module Placement Rules
@@ -141,7 +140,7 @@ minutes later.
 | [docs/developer/microsoft-graph.md](docs/developer/microsoft-graph.md) | Endpoints used, the device-code flow, scopes, and Graph's known limits. |
 | [docs/developer/settings-card.md](docs/developer/settings-card.md) | The client bundle contract, slot registration, locale, theme tokens, route contract. |
 | [docs/developer/testing.md](docs/developer/testing.md) | The test harness, the peer stub, the schema subset, and how to add a suite. |
-| [docs/developer/publishing.md](docs/developer/publishing.md) | Versioning, release workflow, npm publishing, and the packaged file list. |
+| [docs/developer/publishing.md](docs/developer/publishing.md) | Versioning, the manual release process, npm publishing, and the packaged file list. |
 | [README.md](README.md) / [README.zh.md](README.zh.md) | End-user documentation: install, Azure app registration, configuration. |
 
 ## AI Notes Policy
@@ -254,6 +253,12 @@ loader, and every Host module is loaded as-is by the DSH Loader.
 | `npm run test:watch` | Same, in watch mode. |
 | `npm run pack:check` | `npm pack --dry-run`: verifies the publishable file list. |
 
+There is no CI configuration and no `.github/` directory: nothing runs on a push,
+a pull request, or a tag. Every command above is run by hand on the machine that
+cuts the release; section 2 of
+[docs/developer/publishing.md](docs/developer/publishing.md) is the pre-release
+checklist.
+
 Local installation into a DSH profile:
 
 ```bash
@@ -261,4 +266,4 @@ dsh plugin install /absolute/path/to/dsh-plugin-onenote
 ```
 
 See [docs/developer/publishing.md](docs/developer/publishing.md) for the release
-workflow.
+process.

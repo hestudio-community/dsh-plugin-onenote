@@ -1,6 +1,6 @@
 # Publishing
 
-This document covers versioning, the release workflow, and what the published
+This document covers versioning, the release process, and what the published
 package contains. It assumes the repository is `hestudio-community/dsh-plugin-onenote`.
 
 ## 1. Versioning
@@ -36,31 +36,35 @@ Run these in order and do not skip a failure:
 5. Confirm the settings card was rendered once in the running app if the change
    touched `client.js`.
 
-## 3. Release workflow
+## 3. Release
 
-Releases are cut from a tag. `.github/workflows/release.yml` runs on `v*` and:
+There is no release automation. The repository has no `.github/workflows/`, so
+pushing a tag publishes nothing and creates no release. A maintainer cuts the
+release by hand on a clean checkout of `main`, in this order:
 
-1. runs `npm test`;
-2. publishes with `npm publish --access public --provenance`;
-3. creates a GitHub release with generated notes.
+1. Run the pre-release checklist in section 2; stop on the first failure.
+2. Bump the version: `npm version minor`, or `patch`/`major` as section 1
+   demands. This writes `package.json`, commits, and creates the `v<version>`
+   tag.
+3. Publish: `npm publish --access public`.
+4. Push the commit and the tag: `git push --follow-tags`.
 
-`--provenance` publishes a signed attestation linking the tarball to the commit
-and the workflow run. It requires the `id-token: write` permission, which the
-workflow grants.
+The maintainer must be authenticated against npm before step 3: run
+`npm login`, or export `NPM_TOKEN` with a token that has publish rights for the
+package; npm reads that variable automatically.
 
-The publish step needs a repository secret named `NPM_TOKEN`: an npm automation
-token with publish rights for the package.
+`--provenance` is not used. It makes npm sign an attestation with the CI
+provider's OIDC identity, which a local publish does not have, so
+`npm publish --provenance` fails with a usage error off CI. The published tarball
+therefore carries no provenance attestation, and the npm package page shows none.
 
-Manual release:
+If a review must happen before the tag exists, run
+`npm version --no-git-tag-version`, commit through the normal process, tag the
+reviewed commit with `git tag v<version>`, and continue from step 3.
 
-```bash
-npm version minor          # bumps package.json, commits, and tags
-git push --follow-tags
-```
-
-`npm version` creates the commit and the tag itself. If the project's commit
-policy requires a review before tagging, run it with `--no-git-tag-version`,
-commit through the normal process, and tag afterwards.
+The GitHub release is optional and created by hand: open the repository's
+Releases page, pick the pushed tag, and use *Generate release notes*. No step
+above creates it.
 
 ## 4. Packaged contents
 
@@ -89,7 +93,7 @@ src/state.js
 src/tools.js
 ```
 
-Deliberately excluded: `test/`, `docs/`, `AGENTS.md`, `.github/`, `.gitignore`.
+Deliberately excluded: `test/`, `docs/`, `AGENTS.md`, `.gitignore`.
 `package.json` is always included by npm regardless of `files`.
 
 Two additions are required when a new file is created:
@@ -145,5 +149,5 @@ npm_config_cache=/tmp/npmcache npm pack --dry-run
 ```
 
 That is a local filesystem problem, not a package problem. Publishing is
-therefore expected to happen either from CI or after
-`sudo chown -R $(id -u):$(id -g) ~/.npm`.
+therefore expected to happen after
+`sudo chown -R $(id -u):$(id -g) ~/.npm`; there is no CI to publish from.

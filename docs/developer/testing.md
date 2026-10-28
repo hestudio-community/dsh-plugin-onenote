@@ -94,7 +94,7 @@ strings are exercised for real rather than matched as substrings.
 
 DSH enforces a strict subset for tool output schemas. A schema outside it fails
 at registration, not at first call. `test/support/schema.js` reimplements the
-subset so a mistake fails in CI:
+subset so a mistake fails under `npm test`:
 
 - allowed keywords: `type`, `oneOf`, `properties`, `required`,
   `additionalProperties`, `items`, `enum`, `const`;
@@ -127,8 +127,8 @@ results are built through a `compact()` helper that drops undefined fields.
 
 | Gap | Why | How to check manually |
 | --- | --- | --- |
-| The card's visual result | No browser in CI. | Open *Settings → Plugins → OneNote*. |
-| A real Graph round trip | No credentials in CI. | Sign in once in the running app. |
+| The card's visual result | The suite runs in Node, with no browser. | Open *Settings → Plugins → OneNote*. |
+| A real Graph round trip | The suite holds no credentials. | Sign in once in the running app. |
 | Token refresh against the live endpoint | Same. | Let a token expire, then read a page. |
 | Graph's real OData parser | The fake Graph models the one rejection that matters (a nested `select` in `$expand`), not the whole grammar. | Call `onenote_read_page` on a real page; a 400 with *Parsing OData Select and Expand failed* means an `$expand` gained a nested `select`. |
 | Installation into a profile | Requires a harness. | `dsh plugin install <path>` and confirm the row activates. |
