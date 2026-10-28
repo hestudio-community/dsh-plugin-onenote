@@ -37,7 +37,16 @@ export function apply(ctx, rawConfig) {
     for (const dispose of disposers) dispose();
   });
 
-  installRoutes(ctx, service);
+  // The routes are mounted from a dependency callback, never from a one-shot
+  // `ctx.get('webServer')`. The Loader creates every row concurrently and the
+  // webServer row stays LOADING while it binds its socket, so a strict read at
+  // apply time answers `undefined` and the five routes are silently dropped:
+  // the card then reaches Connection's `/api` prefix and gets its plain-text
+  // 401, which is not JSON. `ctx.inject` pends until the service is ACTIVE and
+  // re-runs if it is replaced, which is the only ordering-safe mount.
+  ctx.inject(['webServer'], (scoped) => {
+    installRoutes(scoped, service);
+  });
 
   const systemPrompt = ctx.get('systemPrompt');
   if (systemPrompt !== undefined) {

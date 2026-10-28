@@ -61,7 +61,8 @@ window.__ModuleLoader__.load({
       'loadFailed': 'Could not load the notebook list: {error}',
       'signInFailed': 'Sign-in failed: {error}',
       'saveFailed': 'Could not save: {error}',
-      'settingsPath': 'Settings → Plugins → OneNote'
+      'settingsPath': 'Settings → Plugins → OneNote',
+      'unreachable': 'The plugin routes are not registered in this process. Restart DeepSeek Harness, then reopen this card.'
     }
 
     const zh = {
@@ -104,7 +105,8 @@ window.__ModuleLoader__.load({
       'loadFailed': '无法加载笔记本列表：{error}',
       'signInFailed': '登录失败：{error}',
       'saveFailed': '保存失败：{error}',
-      'settingsPath': '设置 → 插件 → OneNote'
+      'settingsPath': '设置 → 插件 → OneNote',
+      'unreachable': '本进程没有注册插件路由。请重启 DeepSeek Harness，然后重新打开本卡片。'
     }
 
     const CSS = [
@@ -118,10 +120,14 @@ window.__ModuleLoader__.load({
       '.dsh-onenote-btn{height:30px;border-radius:8px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);padding:0 12px;font-size:13px;cursor:pointer}',
       '.dsh-onenote-btn:hover:not(:disabled){background:var(--dsw-alias-bg-overlay)}',
       '.dsh-onenote-btn:disabled{opacity:.5;cursor:default}',
-      '.dsh-onenote-btn-primary{background:var(--dsw-alias-brand-primary);border-color:var(--dsw-alias-brand-primary);color:#fff}',
-      '.dsh-onenote-btn-primary:hover:not(:disabled){filter:brightness(1.05);background:var(--dsw-alias-brand-primary)}',
+      // The primary button must pair the host's own fill and label tokens.
+      // `brand-primary` inverts between themes (near-black on light, near-white
+      // on dark), so using it as a fill with a literal white label produced
+      // white-on-white and an unreadable sign-in button in dark mode.
+      '.dsh-onenote-btn-primary{background:var(--dsw-alias-button-primary-fill);border-color:var(--dsw-alias-button-primary-fill);color:var(--dsw-alias-label-primary-foreground)}',
+      '.dsh-onenote-btn-primary:hover:not(:disabled){background:var(--dsw-alias-button-primary-hover);border-color:var(--dsw-alias-button-primary-hover)}',
       '.dsh-onenote-code{font-family:var(--ds-font-family-code,monospace);font-size:26px;letter-spacing:4px;font-weight:600;padding:10px 14px;border-radius:10px;border:1px dashed var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);align-self:flex-start}',
-      '.dsh-onenote-link{color:var(--dsw-alias-brand-primary);font-size:13px;text-decoration:none;word-break:break-all}',
+      '.dsh-onenote-link{color:var(--dsw-alias-link);font-size:13px;text-decoration:none;word-break:break-all}',
       '.dsh-onenote-link:hover{text-decoration:underline}',
       '.dsh-onenote-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px;max-height:320px;overflow:auto}',
       '.dsh-onenote-item{display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:8px}',
@@ -144,7 +150,15 @@ window.__ModuleLoader__.load({
       }
     }
 
-    /** One fetch wrapper: every route answers JSON, and a network fault becomes data. */
+    /**
+     * One fetch wrapper: every route answers JSON, and a network fault becomes data.
+     *
+     * A non-JSON body is reported with its status and a first line of text,
+     * never as a bare "unreadable response": the usual cause is that the Host
+     * never registered `/api/onenote/*`, so the request fell through to the
+     * Web server's own `/api` prefix and got its plain-text 401. Naming that
+     * tells the user to restart, which is the only thing that helps.
+     */
     async function call(path, init) {
       let response
       try {
@@ -152,11 +166,22 @@ window.__ModuleLoader__.load({
       } catch (error) {
         return { ok: false, error: String(error && error.message ? error.message : error) }
       }
+      const text = await response.text().catch(() => '')
+      let parsed
       try {
-        return await response.json()
+        parsed = JSON.parse(text)
       } catch {
-        return { ok: false, error: 'The server returned an unreadable response.' }
+        const detail = text.trim().split('\n', 1)[0].slice(0, 120)
+        return {
+          ok: false,
+          error: 'HTTP ' + response.status + (detail.length > 0 ? ': ' + detail : ''),
+          unreachable: true
+        }
       }
+      if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+        return { ok: false, error: 'The server answered with a non-object JSON value.', unreachable: true }
+      }
+      return parsed
     }
 
     function Spinner() {
@@ -198,7 +223,9 @@ window.__ModuleLoader__.load({
         if (!alive.current) return
         if (next === null || next === undefined || next.ok !== true) {
           setError(next && next.error ? next.error : 'Unknown error')
-          setState({ phase: 'error' })
+          // A non-JSON answer means the Host half never mounted its routes, so
+          // "Try again" cannot help; the card offers the restart instead.
+          setState({ phase: 'error', unreachable: next !== null && next !== undefined && next.unreachable === true })
           return
         }
         setError(null)
@@ -359,6 +386,9 @@ window.__ModuleLoader__.load({
         return h('div', { className: 'dsh-onenote' },
           style,
           h('p', { className: 'dsh-onenote-err' }, tr('error') + ': ' + (error || '')),
+          state.unreachable === true
+            ? h('p', { className: 'dsh-onenote-warn' }, tr('unreachable'))
+            : null,
           h('div', { className: 'dsh-onenote-row' },
             h('button', { type: 'button', className: 'dsh-onenote-btn', onClick: () => { setState({ phase: 'loading' }); load() } }, tr('retry'))
           )

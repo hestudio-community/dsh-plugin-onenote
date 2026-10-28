@@ -139,7 +139,7 @@ workspace.
 ## Development
 
 ```bash
-npm test          # 86 tests, no network, no host required
+npm test          # 97 tests, no network, no host required
 npm run pack:check
 ```
 

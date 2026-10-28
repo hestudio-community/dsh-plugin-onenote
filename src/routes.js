@@ -114,6 +114,14 @@ function signOut(service) {
 
 /**
  * Register every route on the Web server.
+ *
+ * Call this from inside `ctx.inject(['webServer'], ...)`, never directly from
+ * `apply`. The Loader starts every row concurrently and the webServer row is
+ * still LOADING while it binds its socket, so `ctx.get('webServer')` at apply
+ * time answers `undefined` and every route is skipped. The card then falls
+ * through to Connection's `/api` prefix, which answers a plain-text 401 that is
+ * not JSON, and the card shows an error instead of the sign-in form.
+ *
  * @param {object} ctx - the plugin context, whose `webServer` may be absent.
  * @param {object} service - the shared OneNote service.
  * @returns {boolean} whether the routes were registered.

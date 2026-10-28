@@ -69,7 +69,21 @@ async function request(url, config, { accept = 'application/json', signal } = {}
     } catch {
       /* a non-JSON error body is still worth showing, trimmed below */
     }
-    const reason = typeof detail === 'string' ? detail.split('\n')[0].slice(0, 400) : '';
+    // Graph's own message already ends with a period; the templates below add
+    // one, so trim it first. A doubled period ("expression..") read as a
+    // different kind of failure and hid the real cause from the user.
+    const reason = typeof detail === 'string'
+      ? detail.split('\n')[0].trim().replace(/\.+$/, '').slice(0, 400)
+      : '';
+    // A rejected OData expression is a defect in the query this plugin built,
+    // never a permission or network problem. Saying so stops the next reader
+    // from re-authenticating, which cannot help.
+    if (response.status === 400 && /Parsing OData Select and Expand/i.test(reason)) {
+      throw new GraphError(
+        `Microsoft Graph rejected the query this plugin generated: ${reason}. This is a defect in the plugin, not a permission or network problem: update the plugin, then restart DeepSeek Harness.`,
+        { status: 400, code: code ?? 'BAD_REQUEST' },
+      );
+    }
     if (response.status === 403) {
       throw new GraphError(
         `Microsoft Graph denied access${reason.length > 0 ? `: ${reason}` : ''}. The signed-in account may lack permission for this notebook.`,
@@ -109,8 +123,16 @@ async function requestCollection(path, params, config, signal) {
   return items;
 }
 
-/** The expanded parent selectors shared by every page query. */
-const PAGE_EXPAND = 'parentSection(select=id,displayName),parentNotebook(select=id,displayName)';
+/**
+ * The expanded parent selectors shared by every page query.
+ *
+ * OneNote implements only a subset of OData: a nested `select` inside `$expand`
+ * is rejected with `Parsing OData Select and Expand failed`, which failed every
+ * page and section read. Expanding the navigation property bare is accepted and
+ * still returns the parent's `id` and `displayName`, which is all the consent
+ * check needs. Verified against Graph v1.0; do not reintroduce `(select=...)`.
+ */
+const PAGE_EXPAND = 'parentSection,parentNotebook';
 const PAGE_SELECT = 'id,title,createdDateTime,lastModifiedDateTime,links';
 
 function toNotebook(raw) {
@@ -224,7 +246,7 @@ export async function getSectionMeta(config, sectionId, signal) {
   const raw = await request(
     buildUrl(`/me/onenote/sections/${encodeURIComponent(sectionId)}`, {
       $select: 'id,displayName',
-      $expand: 'parentNotebook(select=id,displayName)',
+      $expand: 'parentNotebook',
     }),
     config,
     { signal },

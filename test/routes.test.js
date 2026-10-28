@@ -219,3 +219,57 @@ test('a malformed JSON body answers ok:false', () => withHome(async () => {
   assert.equal(res.body.ok, false);
   assert.match(res.body.error, /not valid JSON/);
 }));
+
+/**
+ * The bug this pins: the Loader starts every row concurrently and the
+ * webServer row stays LOADING while it binds, so a strict `ctx.get` at apply
+ * time answers `undefined`. The five routes were then dropped without a trace,
+ * the card fell through to Connection's `/api` prefix, and its plain-text 401
+ * surfaced as an opaque error instead of the sign-in form.
+ *
+ * This drives the real `apply` with a webServer that is absent at apply time
+ * and arrives afterwards, which is the ordering that broke the card. It fails
+ * if `apply` reverts to a one-shot `ctx.get`.
+ */
+test('apply waits for a webServer that arrives after activation', async () => {
+  const { apply } = await import('../index.js');
+  const routes = new Map();
+  let pending = null;
+  let applied = false;
+
+  const ctx = {
+    logger: { warn: () => {} },
+    // Absent at apply time, exactly like a row whose fiber is still LOADING.
+    get: () => undefined,
+    effect: (fn) => { fn(); return () => {}; },
+    tools: { register: () => () => {} },
+    inject: (deps, callback) => { pending = { deps, callback }; return () => {}; },
+  };
+
+  apply(ctx, CONFIG);
+  applied = true;
+  assert.equal(applied, true, 'apply must not throw when webServer is missing');
+  assert.ok(pending !== null, 'apply must defer the route mount to a dependency callback');
+  assert.deepEqual(pending.deps, ['webServer']);
+  assert.equal(routes.size, 0, 'nothing registers before webServer is ACTIVE');
+
+  // The service arrives late: the callback runs and all five routes mount.
+  pending.callback({
+    get: () => ({ register: (route) => { routes.set(`${route.kind}:${route.path}`, route); return () => {}; } }),
+    effect: (fn) => { fn(); return () => {}; },
+    logger: { warn: () => {} },
+  });
+  assert.equal(routes.size, 5, 'all five routes register once webServer is ACTIVE');
+});
+
+test('installRoutes reports that it skipped a composition without a web server', async () => {
+  const { installRoutes } = await import('../src/routes.js');
+  const warnings = [];
+  const installed = installRoutes({
+    get: () => undefined,
+    effect: () => () => {},
+    logger: { warn: (message) => warnings.push(message) },
+  }, {});
+  assert.equal(installed, false);
+  assert.equal(warnings.length, 1);
+});

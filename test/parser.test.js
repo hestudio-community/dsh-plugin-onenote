@@ -89,3 +89,30 @@ test('survives unclosed tags', () => {
   assert.match(md, /one/);
   assert.match(md, /two/);
 });
+
+test('keeps the body of a page whose head contains void elements', () => {
+  // Regression: OneNote wraps every page in a <head> holding a self-closing
+  // <meta>. Counting that open tag raised the skip depth without a matching
+  // close, so every real page rendered as an empty string.
+  const html = [
+    '<html lang="zh-CN"><head><title>VPN</title>',
+    '<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />',
+    '<meta name="created" content="2026-10-28T14:02:00.0000000" />',
+    '</head><body><p>概念：虚拟私有网络</p><p>第二段</p></body></html>',
+  ].join('');
+  const md = parseOneNoteHtml(html);
+  assert.match(md, /概念：虚拟私有网络/);
+  assert.match(md, /第二段/);
+  assert.doesNotMatch(md, /Content-Type/);
+});
+
+test('plain text keeps the body when the head has void elements', () => {
+  const html = '<html><head><meta charset="utf-8" /></head><body><p>hello</p></body></html>';
+  assert.equal(htmlToPlainText(html), 'hello');
+});
+
+test('a void element outside a skipped scope does not swallow later text', () => {
+  const md = parseOneNoteHtml('<p>a</p><link rel="x" href="y"><p>b</p>');
+  assert.match(md, /a/);
+  assert.match(md, /b/);
+});

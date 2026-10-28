@@ -10,6 +10,13 @@
 
 const BLOCK_TAGS = new Set(['p', 'div', 'section', 'article', 'header', 'footer', 'main', 'body', 'html', 'li', 'tr', 'table', 'ul', 'ol', 'pre', 'blockquote']);
 const SKIP_TAGS = new Set(['script', 'style', 'head', 'title', 'meta', 'link', 'noscript']);
+/**
+ * HTML void elements: they never emit a closing tag, so opening one must never
+ * raise the skip depth. OneNote wraps every page in a `<head>` containing
+ * `<meta … />`, and treating that as an unclosed skip scope discarded the whole
+ * page body — every page rendered as empty text.
+ */
+const VOID_TAGS = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr']);
 const INLINE_MARKS = {
   strong: ['**', '**'],
   b: ['**', '**'],
@@ -200,7 +207,9 @@ export function renderPage(html, maxChars = 60000) {
 
   const handleOpen = (name, attrs) => {
     if (SKIP_TAGS.has(name)) {
-      skipDepth += 1;
+      // A void element inside a skipped scope (OneNote's `<meta>` inside
+      // `<head>`) has no closing tag, so it must not increment the depth.
+      if (!VOID_TAGS.has(name)) skipDepth += 1;
       return;
     }
     if (skipDepth > 0) return;
@@ -374,7 +383,7 @@ export function htmlToPlainText(html, maxChars = 20000) {
     const name = match[2].toLowerCase();
     if (SKIP_TAGS.has(name)) {
       if (match[1] === '/') skipDepth = Math.max(0, skipDepth - 1);
-      else skipDepth += 1;
+      else if (!VOID_TAGS.has(name)) skipDepth += 1;
     } else if (skipDepth === 0) {
       out += ' ';
     }

@@ -158,14 +158,83 @@ test('the card uses only host theme tokens for colour', () => {
   const css = source.slice(source.indexOf('const CSS = ['), source.indexOf("].join('\\n')"));
   const colors = [...css.matchAll(/(?:color|background|border-color)\s*:\s*([^;'}]+)/g)].map((match) => match[1].trim());
   for (const value of colors) {
-    if (value.startsWith('var(--dsw-alias-')) continue;
-    // A literal colour is allowed only for the primary button's label.
-    assert.equal(value, '#fff', `literal colour outside a token: ${value}`);
+    assert.ok(value.startsWith('var(--dsw-alias-'), `colour outside a theme token: ${value}`);
   }
+});
+
+/**
+ * `brand-primary` inverts between themes (near-black on light, near-white on
+ * dark), so filling a button with it and labelling it with a literal white made
+ * the sign-in button white-on-white in dark mode. The primary button must pair
+ * the host's fill token with the host's foreground token.
+ */
+test('the primary button pairs the host fill and foreground tokens', () => {
+  const source = readFileSync(join(import.meta.dirname, '..', 'client.js'), 'utf8');
+  const rule = source.match(/\.dsh-onenote-btn-primary\{([^}]*)\}/);
+  assert.ok(rule, 'client.js no longer styles .dsh-onenote-btn-primary');
+  assert.match(rule[1], /background:var\(--dsw-alias-button-primary-fill\)/);
+  assert.match(rule[1], /color:var\(--dsw-alias-label-primary-foreground\)/);
+  assert.doesNotMatch(rule[1], /#[0-9a-f]{3,8}/i);
 });
 
 test('the client never imports a host client package as a module', () => {
   const source = readFileSync(join(import.meta.dirname, '..', 'client.js'), 'utf8');
   assert.doesNotMatch(source, /require\(['"]@deepseek-ai\/dsh-client-/);
   assert.doesNotMatch(source, /document\.body\.append/);
+});
+
+/**
+ * The card used to answer every non-JSON body with one opaque sentence, which
+ * hid the real cause: when the Host routes were never registered, the request
+ * fell through to Connection's `/api` prefix and got a plain-text 401. The
+ * wrapper must now report the status and first line, and mark the answer
+ * `unreachable` so the error state offers a restart instead of a dead retry.
+ */
+test('a non-JSON answer reports its status and is marked unreachable', async () => {
+  const source = readFileSync(join(import.meta.dirname, '..', 'client.js'), 'utf8');
+  const start = source.indexOf('async function call(');
+  assert.ok(start > 0, 'client.js no longer defines call()');
+  const end = source.indexOf('\n    }', start);
+  const body = source.slice(start, end + 6);
+  // `call` closes over the API constant, so evaluate it with that in scope.
+  const call = new Function("const API = '/api/onenote';\n" + body + '\nreturn call;')();
+
+  const previous = globalThis.fetch;
+  globalThis.fetch = async () => ({ status: 401, text: async () => 'unauthorized\n' });
+  let answer;
+  try {
+    answer = await call('/state', undefined);
+  } finally {
+    if (previous === undefined) delete globalThis.fetch; else globalThis.fetch = previous;
+  }
+  assert.equal(answer.ok, false);
+  assert.equal(answer.unreachable, true);
+  assert.match(answer.error, /401/);
+  assert.match(answer.error, /unauthorized/);
+  assert.doesNotMatch(answer.error, /unreadable/i);
+});
+
+test('a JSON answer passes through untouched', async () => {
+  const source = readFileSync(join(import.meta.dirname, '..', 'client.js'), 'utf8');
+  const start = source.indexOf('async function call(');
+  const end = source.indexOf('\n    }', start);
+  const call = new Function("const API = '/api/onenote';\n" + source.slice(start, end + 6) + '\nreturn call;')();
+
+  const previous = globalThis.fetch;
+  globalThis.fetch = async () => ({ status: 200, text: async () => '{"ok":true,"signedIn":false}' });
+  let answer;
+  try {
+    answer = await call('/state', undefined);
+  } finally {
+    if (previous === undefined) delete globalThis.fetch; else globalThis.fetch = previous;
+  }
+  assert.deepEqual(answer, { ok: true, signedIn: false });
+  assert.equal(answer.unreachable, undefined);
+});
+
+test('the unreachable message tells the user to restart, in both languages', () => {
+  const source = readFileSync(join(import.meta.dirname, '..', 'client.js'), 'utf8');
+  assert.match(source, /'unreachable': 'The plugin routes are not registered/);
+  assert.match(source, /'unreachable': '本进程没有注册插件路由/);
+  assert.doesNotMatch(source, /The server returned an unreadable response/);
 });

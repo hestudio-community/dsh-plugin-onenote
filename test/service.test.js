@@ -48,6 +48,21 @@ function installFetch({ onDeviceCode, onToken } = {}) {
       headers: { 'content-type': 'application/json' },
     });
 
+    // OneNote's OData subset rejects a nested `select` inside `$expand`. The
+    // real service answers 400; a fake that accepts any query string let the
+    // nested form pass all 95 tests while failing every live read. Rejecting it
+    // here makes the same defect fail locally.
+    const expand = url.searchParams.get('$expand') ?? '';
+    const nested = expand.match(/\(select=([^)]*)\)/i);
+    if (nested !== null) {
+      return json({
+        error: {
+          code: 'BadRequest',
+          message: `Parsing OData Select and Expand failed: Term '${nested[0]}' is not valid in a $select or $expand expression.`,
+        },
+      }, 400);
+    }
+
     if (url.host === 'login.microsoftonline.com') {
       if (url.pathname.endsWith('/devicecode')) {
         return json(onDeviceCode ?? {
@@ -134,6 +149,29 @@ test('status reports signed out before any token exists', () => withHome(async (
   assert.equal(status.signedIn, false);
   assert.equal(status.allowedCount, 0);
   assert.equal(status.pendingSignIn, false);
+}));
+
+test('status stays signed in when only the access token lapsed but a refresh token remains', () => withHome(async () => {
+  // Regression: `signedIn` used to mirror `expiresAt > now`, so an expired
+  // access token hid the notebook list in the card and made onenote_status
+  // report "not connected" even though the next request refreshes silently.
+  installFetch();
+  const { writeTokens } = await import('../src/state.js');
+  writeTokens({ accessToken: 'AT', refreshToken: 'RT', expiresAt: Date.now() - 1000 });
+  const { createOneNoteService } = await import('../src/service.js');
+  const status = createOneNoteService(CONFIG).status();
+  assert.equal(status.signedIn, true);
+  assert.equal(status.renewsAutomatically, true);
+}));
+
+test('status is signed out when the access token lapsed and no refresh token remains', () => withHome(async () => {
+  installFetch();
+  const { writeTokens } = await import('../src/state.js');
+  writeTokens({ accessToken: 'AT', expiresAt: Date.now() - 1000 });
+  const { createOneNoteService } = await import('../src/service.js');
+  const status = createOneNoteService(CONFIG).status();
+  assert.equal(status.signedIn, false);
+  assert.equal(status.renewsAutomatically, false);
 }));
 
 test('beginSignIn persists the attempt so the next request can poll it', () => withHome(async () => {
@@ -286,6 +324,65 @@ test('an empty query is rejected', () => withHome(async () => {
   const service = await readyService();
   await service.setAllowedNotebooks(['NB-WORK']);
   await assert.rejects(() => service.search({ query: '   ' }), /non-empty query/);
+}));
+
+test('page queries expand the parent without a nested select', () => withHome(async () => {
+  // Regression: OneNote rejects `$expand=parentNotebook(select=id,displayName)`
+  // with "Parsing OData Select and Expand failed", which broke every page and
+  // section read. A bare expansion is accepted and still returns id+displayName.
+  const calls = installFetch();
+  const service = await readyService();
+  await service.setAllowedNotebooks(['NB-WORK']);
+  await service.listPages({ notebookId: 'NB-WORK' });
+  await service.listPages({ sectionId: 'S-WORK' });
+  await service.readPage({ pageId: 'P-WORK' });
+
+  const expanded = calls
+    .map((call) => new URL(`https://graph.microsoft.com${call.url}`))
+    .filter((url) => url.searchParams.has('$expand'));
+  assert.ok(expanded.length >= 3, 'expected page and section reads to expand a parent');
+  for (const url of expanded) {
+    const expand = url.searchParams.get('$expand') ?? '';
+    assert.doesNotMatch(expand, /select=/i, `nested select in $expand: ${expand}`);
+    assert.match(expand, /parent(Notebook|Section)/);
+  }
+}));
+
+test('the section-owner lookup expands parentNotebook without a nested select', () => withHome(async () => {
+  // Same defect, different call site: `getSectionMeta` spelled its own
+  // `$expand`, so fixing only `PAGE_EXPAND` left every `section_id` browse
+  // failing against the live service.
+  const calls = installFetch();
+  const service = await readyService();
+  await service.setAllowedNotebooks(['NB-WORK']);
+  await service.listPages({ sectionId: 'S-WORK' });
+
+  const meta = calls
+    .map((call) => new URL(`https://graph.microsoft.com${call.url}`))
+    .filter((url) => /\/me\/onenote\/sections\/[^/]+$/.test(url.pathname));
+  assert.equal(meta.length, 1, 'expected exactly one section-metadata read');
+  assert.equal(meta[0].searchParams.get('$expand'), 'parentNotebook');
+}));
+
+test('a rejected OData query is reported as a plugin defect, with one closing period', () => withHome(async () => {
+  // Regression: the generic 400 branch appended a period to a message that
+  // already ended with one ("expression.."), and said nothing about the cause,
+  // so a user read it as a permission or network failure and re-authenticated.
+  const { GraphError } = await import('../src/graph-client.js');
+  const { describeFailure } = await import('../src/service.js');
+  installFetch();
+  globalThis.fetch = async () => new Response(JSON.stringify({
+    error: { code: 'BadRequest', message: 'Parsing OData Select and Expand failed: Term is not valid.' },
+  }), { status: 400, headers: { 'content-type': 'application/json' } });
+
+  const service = await readyService();
+  const failure = await service.listNotebooks().then(() => null, (error) => error);
+  assert.ok(failure instanceof GraphError, 'expected a GraphError');
+  assert.equal(failure.status, 400);
+  assert.match(failure.message, /defect in the plugin/);
+  assert.match(failure.message, /not a permission or network problem/);
+  assert.doesNotMatch(failure.message, /\.\.$/);
+  assert.doesNotMatch(describeFailure(failure), /\.\./);
 }));
 
 test('signOut forgets the session but keeps the allow-list', () => withHome(async () => {

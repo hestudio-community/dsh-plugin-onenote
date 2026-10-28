@@ -252,8 +252,12 @@ export async function requireAccessToken(config) {
 export function signInSummary() {
   const tokens = readTokens();
   if (tokens === undefined) return { signedIn: false };
+  // A lapsed access token is not a signed-out session while a refresh token can
+  // still renew it: reporting `signedIn: false` there hid the notebook list in
+  // the card and made `onenote_status` claim the plugin was not connected.
+  const usable = tokens.expiresAt > Date.now() || tokens.refreshToken !== undefined;
   return {
-    signedIn: tokens.expiresAt > Date.now(),
+    signedIn: usable,
     renewsAutomatically: tokens.refreshToken !== undefined,
     expiresAt: new Date(tokens.expiresAt).toISOString(),
     account: tokens.account,
