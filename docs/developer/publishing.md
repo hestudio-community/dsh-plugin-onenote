@@ -24,6 +24,33 @@ Internal refactors, comment changes, and test additions are **patch** bumps.
 The version lives in `package.json` only. It is not duplicated in source; the
 card does not display it.
 
+### Peer and engine ranges
+
+`engines.dsh` and the `@deepseek-ai/dsh-tools` peer must carry the **same**
+range, and that range must spell an explicit prerelease branch for every DSH
+line the package supports:
+
+```text
+>=0.2.0-rc.1 <0.2.1-0 || >=0.2.1-0 <0.3.0-0
+```
+
+node-semver only lets a prerelease version satisfy a range when some comparator
+on the *same* `major.minor.patch` tuple also carries a prerelease tag. A
+broad-looking `^0.2.0-0` therefore matches `0.2.0-rc.x` and `0.2.1` but
+silently drops every `0.2.1-rc.x` build — the line the harness actually ships.
+When both are installed npm answers with `ERESOLVE`, and the user has to retry
+with `--legacy-peer-deps`.
+
+To support a new DSH line, append its branch instead of widening the existing
+one — for example `|| >=0.2.2-0 <0.3.0-0` once 0.2.2 prereleases appear. The
+manifest test `the DSH ranges admit prerelease builds of the supported line`
+pins both fields and the absence of the unused peer below.
+
+`@deepseek-ai/cordis` is deliberately **not** declared. No Host module imports
+it: the framework is injected by the loader, not resolved by this package. An
+unused peer is one more range that can conflict with the harness's own
+prerelease versions, so declaring it only adds a failure mode.
+
 ## 2. Pre-release checklist
 
 Run these in order and do not skip a failure:

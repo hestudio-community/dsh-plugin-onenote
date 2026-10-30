@@ -45,6 +45,19 @@ test('the DSH version requirement is declared where the manager reads it', () =>
   assert.match(manifest.engines.dsh, />=|\^/);
 });
 
+test('the DSH ranges admit prerelease builds of the supported line', () => {
+  // node-semver only lets a prerelease version satisfy a range when a
+  // comparator on the same major.minor.patch tuple also carries a prerelease
+  // tag. `^0.2.0-0` therefore dropped every 0.2.1-rc build — the harness line
+  // users actually run — and npm answered with ERESOLVE. The explicit branches
+  // are the fix; pinning them here keeps a later "tidy-up" from reinstating it.
+  const range = '>=0.2.0-rc.1 <0.2.1-0 || >=0.2.1-0 <0.3.0-0';
+  assert.equal(manifest.engines.dsh, range);
+  assert.equal(manifest.peerDependencies['@deepseek-ai/dsh-tools'], range);
+  // Nothing imports cordis; an unused peer is one more range that can drift.
+  assert.equal(manifest.peerDependencies['@deepseek-ai/cordis'], undefined);
+});
+
 test('both locale files carry the metadata the plugin list renders', () => {
   for (const locale of ['en', 'zh']) {
     const dict = JSON.parse(readFileSync(join(root, 'locale', `${locale}.json`), 'utf8'));

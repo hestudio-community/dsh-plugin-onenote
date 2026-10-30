@@ -6,7 +6,7 @@ installed harness, and how to add a case.
 ## 1. Running
 
 ```bash
-npm test              # 97 tests
+npm test              # 98 tests
 npm run test:watch    # watch mode
 ```
 
@@ -23,7 +23,7 @@ The explicit `test/*.test.js` glob is required, not decorative. A bare
 `node --test` also executes every `.mjs` file under `test/` as a test file:
 `test/support/stub-tools.mjs`, `test/support/define-tool-stub.mjs`, and
 `test/support/schema.js` are each counted as a passing entry, so the run reports
-100 tests instead of 97 and hides which files actually contain suites. Those
+101 tests instead of 98 and hides which files actually contain suites. Those
 helpers are fixtures, not suites; a helper that threw while being imported would
 turn the run red for no reason. The glob keeps the count honest and the helpers
 out of the runner.

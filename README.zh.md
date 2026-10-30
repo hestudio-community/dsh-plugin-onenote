@@ -124,7 +124,7 @@ dsh plugin install dsh-plugin-onenote
 ## 开发
 
 ```bash
-npm test          # 97 个测试，不需要网络，也不需要宿主
+npm test          # 98 个测试，不需要网络，也不需要宿主
 npm run pack:check
 ```
 

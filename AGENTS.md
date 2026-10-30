@@ -24,13 +24,13 @@ before any Microsoft Graph request.
 | Fact | Value |
 | --- | --- |
 | Package name | `dsh-plugin-onenote` |
-| Version | `0.2.1` |
+| Version | `0.2.2` |
 | License | MIT |
-| Runtime | Node `>=22`, DSH `>=0.2.0-rc.1` |
+| Runtime | Node `>=22`, DSH `>=0.2.0-rc.1 <0.2.1-0 \|\| >=0.2.1-0 <0.3.0-0` |
 | Runtime dependencies | none |
-| Host peers | `@deepseek-ai/dsh-tools`, `@deepseek-ai/cordis` (both optional) |
+| Host peers | `@deepseek-ai/dsh-tools` only, optional. `@deepseek-ai/cordis` is not declared: no Host module imports it, and an unused peer can only add resolution conflicts. |
 | Build step | none — the client bundle is hand-written |
-| Test command | `npm test` (97 tests) |
+| Test command | `npm test` (98 tests) |
 
 ## Project Structure
 
