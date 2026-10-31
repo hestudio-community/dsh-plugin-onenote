@@ -6,7 +6,7 @@ installed harness, and how to add a case.
 ## 1. Running
 
 ```bash
-npm test              # 98 tests
+npm test              # 99 tests
 npm run test:watch    # watch mode
 ```
 

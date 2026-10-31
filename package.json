@@ -1,6 +1,6 @@
 {
   "name": "dsh-plugin-onenote",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Read the Microsoft OneNote notebooks you allow, from DeepSeek Harness. Device-code sign-in and a per-notebook allow-list you control in Settings. · 让 DSH 读取你勾选的 OneNote 笔记本：设备码登录，笔记本白名单在设置页勾选。",
   "type": "module",
   "main": "./index.js",
@@ -44,6 +44,7 @@
     "./client": "./client.js",
     "./locale/*.json": "./locale/*.json",
     "./icon": "./icon.svg",
+    "./icon-180": "./assets/icon-180.png",
     "./package.json": "./package.json"
   },
   "files": [
@@ -53,6 +54,7 @@
     "cordis.patch.yml",
     "locale/*.json",
     "icon.svg",
+    "assets/*.png",
     "README.md",
     "README.zh.md",
     "LICENSE"

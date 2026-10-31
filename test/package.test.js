@@ -77,6 +77,26 @@ test('the icon is a parseable SVG within the size limit', () => {
   assert.match(text, /viewBox="0 0 \d+ \d+"/);
 });
 
+test('the storefront tile is a square 180px PNG that ships', () => {
+  // The awesome-dsh-plugin listing refuses SVG tiles, so its `icon:` points at
+  // this render of icon.svg instead. Dropping the file, the export, or the
+  // `files` pattern breaks the storefront tile while every other check passes.
+  const path = join(root, 'assets', 'icon-180.png');
+  assert.ok(existsSync(path), 'assets/icon-180.png is missing');
+  const bytes = readFileSync(path);
+  assert.deepEqual(
+    [...bytes.subarray(0, 8)],
+    [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a],
+    'not a PNG',
+  );
+  assert.equal(bytes.toString('ascii', 12, 16), 'IHDR');
+  assert.equal(bytes.readUInt32BE(16), 180);
+  assert.equal(bytes.readUInt32BE(20), 180);
+  assert.ok(bytes.byteLength <= 256 * 1024, 'tile exceeds 256 KiB');
+  assert.equal(manifest.exports['./icon-180'], './assets/icon-180.png');
+  assert.ok(manifest.files.includes('assets/*.png'), 'files would drop the tile');
+});
+
 test('the repository, homepage, and bugs point at the same project', () => {
   assert.match(manifest.repository.url, /github\.com\/hestudio-community\/dsh-plugin-onenote/);
   assert.match(manifest.homepage, /github\.com\/hestudio-community\/dsh-plugin-onenote/);

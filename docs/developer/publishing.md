@@ -95,13 +95,14 @@ above creates it.
 
 ## 4. Packaged contents
 
-`npm pack --dry-run` currently reports 19 files. `package.json` `files` controls
+`npm pack --dry-run` currently reports 20 files. `package.json` `files` controls
 the list; every runtime module and every display resource must appear.
 
 ```text
 LICENSE
 README.md
 README.zh.md
+assets/icon-180.png
 client.js
 cordis.patch.yml
 icon.svg
@@ -128,6 +129,40 @@ Two additions are required when a new file is created:
 - a new Host module must be covered by `src/*.js`, which the current pattern
   already does;
 - a new top-level asset must be added to `files` explicitly, or it will not ship.
+  The existing `assets/*.png` pattern covers the storefront tile.
+
+### Storefront tile
+
+`assets/icon-180.png` is a 180×180 PNG render of `icon.svg`, and it exists for
+one consumer: the `awesome-dsh-plugin` listing. That list refuses SVG tiles and
+third-party image hosts, so its entry points at
+
+```text
+https://raw.githubusercontent.com/hestudio-community/dsh-plugin-onenote/main/assets/icon-180.png
+```
+
+The tile is drawn at roughly 96 px, so a square image is what works; 180 px
+leaves headroom for high-density screens. It carries an alpha channel, because
+the storefront background is not the icon's purple.
+
+Regenerate it whenever `icon.svg` changes. The render is done with `sharp`
+(libvips/librsvg) in a temporary directory, never from a dependency of this
+package:
+
+```bash
+mkdir -p /tmp/svgtool && cd /tmp/svgtool && npm init -y
+npm install sharp
+node -e "import('sharp').then(async ({default: sharp}) => {
+  await sharp('<repo>/icon.svg', { density: 270 })
+    .resize(180, 180, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+    .png({ compressionLevel: 9 }).toFile('<repo>/assets/icon-180.png');
+})"
+```
+
+`density: 270` is `72 × 180 / 48`, the source `viewBox` being 48 px. The tile is
+pinned by `the storefront tile is a square 180px PNG that ships` in
+`test/package.test.js`; that test fails if the file disappears, stops being a
+180×180 PNG, or drops out of `exports` or `files`.
 
 ## 5. Installing from the repository
 
