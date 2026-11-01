@@ -45,6 +45,15 @@ The token endpoint answers with one of:
 | `invalid_client` | The app registration is wrong. | Surface Graph's message with a hint about the client id. |
 | `unauthorized_client` | Public client flows are disabled. | Surface the message with the hint to enable them. |
 
+### 1.1.1 Browser-side error: `missing 'redirect_uri' input parameter`
+
+When a user visits `microsoft.com/devicelogin` and enters the user code, choosing
+Passkey / Windows Hello / biometric authentication directly without entering the
+account name first can trigger a Microsoft identity service anomaly: Microsoft
+treats the request as an interactive browser flow and complains that `redirect_uri`
+was not passed. The fix for the user is to type the account email explicitly before
+authenticating, or perform the verification in an InPrivate / Incognito browser window.
+
 `pollDeviceCodeOnce` performs exactly one token request. `pollDeviceCode` loops
 over it for callers that want to block (there are none in the shipped paths; the
 loop exists for a future CLI). The card never blocks because it uses the

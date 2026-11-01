@@ -68,6 +68,8 @@ one in about two minutes — no paid subscription is needed:
    personal Microsoft accounts*. Choose a single-tenant option instead if every
    user is in one tenant.
 4. **Redirect URI**: leave empty — the device-code flow needs none.
+   *(Optional: if you configure a platform, choose **Mobile and desktop applications**
+   and tick `https://login.microsoftonline.com/common/oauth2/nativeclient`).*
 5. **Register**, then copy **Application (client) ID**.
 6. **Authentication → Advanced settings → Allow public client flows** = **Yes**,
    then **Save**. Without this, sign-in fails with `unauthorized_client`.
@@ -77,6 +79,17 @@ one in about two minutes — no paid subscription is needed:
    - `User.Read` — name the signed-in account
 8. No client secret and no admin consent are needed for a personal account. A
    work account may need an admin to grant consent once.
+
+### Troubleshooting: "missing 'redirect_uri' input parameter"
+
+If Microsoft fails with `invalid_request: The provided request must include a 'redirect_uri' input parameter`:
+
+- **Cause**: At `microsoft.com/devicelogin`, selecting a Passkey / security key /
+  Windows Hello shortcut directly without typing your username causes Microsoft's
+  login service to misroute the device code flow into an interactive web flow.
+- **Fix**: In the browser, **manually type your full Microsoft account email address**
+  first, then click **Next** before completing authentication. Alternatively,
+  open the verification link in an **InPrivate / Incognito** window.
 
 Then point the plugin at your app by adding a patch layer of your own:
 

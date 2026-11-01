@@ -61,6 +61,7 @@ dsh plugin install dsh-plugin-onenote
 3. **受支持的账户类型**：选择 *任何组织目录中的帐户和个人 Microsoft 帐户*。如果所有用户都在同一租户，
    可以选单租户。
 4. **重定向 URI**：留空——设备码流程不需要。
+   *(可选：如需添加平台，请选择 **移动和桌面应用程序** 并勾选 `https://login.microsoftonline.com/common/oauth2/nativeclient`)*。
 5. 点击 **注册**，复制 **应用程序(客户端) ID**。
 6. **身份验证 → 高级设置 → 允许公共客户端流** = **是**，然后 **保存**。不做这一步会报
    `unauthorized_client`。
@@ -69,6 +70,13 @@ dsh plugin install dsh-plugin-onenote
    - `offline_access` —— 让会话在轮次之间保持有效
    - `User.Read` —— 显示登录账号名
 8. 个人账户不需要客户端密码，也不需要管理员同意。工作账户可能需要管理员授权一次。
+
+### 常见问题：报错 "missing 'redirect_uri' input parameter"
+
+若在微软侧登录时提示 `invalid_request: The provided request must include a 'redirect_uri' input parameter`：
+
+- **原因**：在访问 `microsoft.com/devicelogin` 输入设备码后，若直接点击 Passkey / 脸部指纹安全密钥等快捷方式登录，微软登录端可能发生跳转异常，将设备码流程误判定为需要回调地址的 Web 交互流程。
+- **解决方法**：在浏览器登录界面中，**先手动完整输入微软账号邮箱**，点击“下一步”后再验证；或直接在**浏览器的无痕/隐私窗口（InPrivate / Incognito）**中打开链接并完成登录。
 
 然后在自己的 patch 层里指向你的应用：
 

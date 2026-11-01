@@ -40,6 +40,7 @@ window.__ModuleLoader__.load({
       'pending.expired': 'That code expired. Start sign-in again for a fresh one.',
       'pending.copy': 'Copy code',
       'pending.copied': 'Copied',
+      'pending.tip': 'Note: If Microsoft shows "missing redirect_uri", do not click Passkey/security key directly. Enter your full Microsoft email address first, or use a private/incognito window.',
       'signedIn.title': 'Connected',
       'signedIn.as': 'Signed in as {name}',
       'signedIn.account': 'Signed in',
@@ -84,6 +85,7 @@ window.__ModuleLoader__.load({
       'pending.expired': '代码已过期，请重新开始登录。',
       'pending.copy': '复制代码',
       'pending.copied': '已复制',
+      'pending.tip': '提示：若微软报错“缺少 redirect_uri”，切勿直接点击 Passkey/安全密钥，请先手动输入完整微软邮箱账号，或使用浏览器无痕/隐私窗口重试。',
       'signedIn.title': '已连接',
       'signedIn.as': '已登录：{name}',
       'signedIn.account': '已登录',
@@ -411,7 +413,8 @@ window.__ModuleLoader__.load({
             }, tr('pending.open')),
             h('button', { type: 'button', className: 'dsh-onenote-btn', onClick: copyCode }, copied ? tr('pending.copied') : tr('pending.copy')),
             h('span', { className: 'dsh-onenote-caption' }, tr('pending.expires', { seconds: pending.expiresInSeconds }))
-          )
+          ),
+          h('div', { className: 'dsh-onenote-warn' }, tr('pending.tip'))
         ))
       }
 

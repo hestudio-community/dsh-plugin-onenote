@@ -24,7 +24,7 @@ before any Microsoft Graph request.
 | Fact | Value |
 | --- | --- |
 | Package name | `dsh-plugin-onenote` |
-| Version | `0.2.3` |
+| Version | `0.2.4` |
 | License | MIT |
 | Runtime | Node `>=22`, DSH `>=0.2.0-rc.1 <0.2.1-0 \|\| >=0.2.1-0 <0.3.0-0` |
 | Runtime dependencies | none |
